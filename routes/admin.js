@@ -184,4 +184,23 @@ router.get('/export/:dayId', requireAdmin, async (req, res) => {
   }
 });
 
+// DELETE /api/admin/scores/:dayId — wipe all scores for a day
+router.delete('/scores/:dayId', requireAdmin, async (req, res) => {
+  const { dayId } = req.params;
+  try {
+    const day = await db.get('SELECT id FROM days WHERE id = ?', [dayId]);
+    if (!day) return res.status(404).json({ error: 'Day not found' });
+
+    const result = await db.run(`
+      DELETE FROM scores
+      WHERE judge_id IN (SELECT id FROM judges WHERE day_id = ?)
+    `, [dayId]);
+
+    res.json({ success: true, deleted: result.changes });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

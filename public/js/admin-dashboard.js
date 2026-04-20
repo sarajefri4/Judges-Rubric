@@ -59,6 +59,7 @@ async function initDashboard() {
   document.getElementById('export-btn').addEventListener('click', () => {
     if (currentDayId) window.location.href = `/api/admin/export/${currentDayId}`;
   });
+  document.getElementById('reset-btn').addEventListener('click', resetScores);
 
   startAutoRefresh();
 }
@@ -268,6 +269,31 @@ function renderScoreGrid(teams, judges, scores) {
 
   document.getElementById('grid-legend').textContent =
     `${judges.length} judge${judges.length !== 1 ? 's' : ''} × ${teams.length} team${teams.length !== 1 ? 's' : ''}`;
+}
+
+/* ── Reset Scores ────────────────────────────────────────────────────────── */
+async function resetScores() {
+  if (!currentDayId) return;
+
+  const confirmed = window.confirm(
+    'Reset ALL scores for this day?\n\nThis cannot be undone. Use only for testing.'
+  );
+  if (!confirmed) return;
+
+  const btn = document.getElementById('reset-btn');
+  btn.disabled = true;
+  btn.textContent = 'Resetting…';
+
+  try {
+    const result = await apiFetch(`/api/admin/scores/${currentDayId}`, { method: 'DELETE' });
+    showToast(`Reset complete — ${result.deleted} score${result.deleted !== 1 ? 's' : ''} deleted`);
+    await loadData();
+  } catch (err) {
+    showToast('Reset failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg> Reset Scores`;
+  }
 }
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */

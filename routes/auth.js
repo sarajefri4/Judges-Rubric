@@ -1,6 +1,5 @@
 const express = require('express');
 const router  = express.Router();
-const bcrypt  = require('bcrypt');
 const db      = require('../db');
 
 // POST /api/auth/admin
@@ -21,21 +20,14 @@ router.post('/admin', (req, res) => {
 
 // POST /api/auth/judge
 router.post('/judge', async (req, res) => {
-  const { judgeId, pin } = req.body;
-  if (!judgeId || !pin) {
-    return res.status(400).json({ error: 'judgeId and PIN required' });
+  const { judgeId } = req.body;
+  if (!judgeId) {
+    return res.status(400).json({ error: 'judgeId required' });
   }
 
   try {
     const judge = await db.get('SELECT * FROM judges WHERE id = ?', [judgeId]);
     if (!judge) return res.status(404).json({ error: 'Judge not found' });
-
-    if (!judge.pin_hash) {
-      return res.status(401).json({ error: 'No PIN set for this judge — contact admin.' });
-    }
-
-    const valid = await bcrypt.compare(String(pin), judge.pin_hash);
-    if (!valid) return res.status(401).json({ error: 'Invalid PIN' });
 
     req.session.judgeId   = judge.id;
     req.session.judgeName = judge.name;

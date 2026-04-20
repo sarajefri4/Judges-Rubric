@@ -1,9 +1,7 @@
 /* ── Judge Login ──────────────────────────────────────────────────────────── */
-let selectedDayId   = null;
-let selectedJudgeId = null;
+let selectedDayId = null;
 
 (async () => {
-  // If already logged in as judge, go straight to scoring
   const session = await getSession();
   if (session && session.type === 'judge') {
     window.location.href = '/score';
@@ -12,18 +10,7 @@ let selectedJudgeId = null;
 
   loadDays();
 
-  // Navigation
   document.getElementById('back-to-day').addEventListener('click', () => goToStep('day'));
-  document.getElementById('back-to-judges').addEventListener('click', () => goToStep('judge'));
-
-  // Login form
-  document.getElementById('login-form').addEventListener('submit', handleLogin);
-
-  // PIN visibility toggle
-  document.getElementById('pin-toggle').addEventListener('click', () => {
-    const input = document.getElementById('judge-pin');
-    input.type  = input.type === 'password' ? 'text' : 'password';
-  });
 })();
 
 /* ── Step Navigation ─────────────────────────────────────────────────────── */
@@ -33,17 +20,16 @@ function goToStep(name) {
   }
   document.getElementById(`step-${name}`).classList.add('active');
   updateStepIndicator(name);
-  // Focus first interactive element
   const first = document.getElementById(`step-${name}`).querySelector('input, button, [tabindex]');
   first?.focus();
 }
 
 function updateStepIndicator(step) {
-  const steps  = ['day', 'judge', 'pin'];
-  const labels = { day: 'Select your day', judge: 'Select your name', pin: 'Enter your PIN' };
+  const steps  = ['day', 'judge'];
+  const labels = { day: 'Select your day', judge: 'Select your name' };
   const idx    = steps.indexOf(step);
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     const dot = document.getElementById(`dot-${i + 1}`);
     dot.classList.remove('active', 'done');
     if (i < idx)  dot.classList.add('done');
@@ -88,7 +74,6 @@ async function loadDays() {
 async function selectDay(day) {
   selectedDayId = day.id;
 
-  // Highlight selected card
   for (const c of document.querySelectorAll('.day-card')) {
     c.classList.remove('selected');
   }
@@ -128,10 +113,8 @@ async function loadJudges(dayId) {
   }
 }
 
-/* ── Select Judge ────────────────────────────────────────────────────────── */
-function selectJudge(judge, cardEl) {
-  selectedJudgeId = judge.id;
-
+/* ── Select Judge & Login ─────────────────────────────────────────────────── */
+async function selectJudge(judge, cardEl) {
   for (const c of document.querySelectorAll('.judge-card')) {
     c.classList.remove('selected');
     c.setAttribute('aria-pressed', 'false');
@@ -139,45 +122,20 @@ function selectJudge(judge, cardEl) {
   cardEl.classList.add('selected');
   cardEl.setAttribute('aria-pressed', 'true');
 
-  document.getElementById('selected-name').textContent = judge.name;
-  document.getElementById('judge-pin').value = '';
-  document.getElementById('login-error').classList.add('hidden');
-  goToStep('pin');
-}
-
-/* ── Login ───────────────────────────────────────────────────────────────── */
-async function handleLogin(e) {
-  e.preventDefault();
-  const pin    = document.getElementById('judge-pin').value.trim();
-  const errEl  = document.getElementById('login-error');
-  const btn    = document.getElementById('login-submit');
-
-  if (!selectedJudgeId) {
-    errEl.textContent = 'Please select your name first.';
-    errEl.classList.remove('hidden');
-    return;
+  // Disable all cards while logging in
+  for (const c of document.querySelectorAll('.judge-card')) {
+    c.style.pointerEvents = 'none';
   }
-  if (!pin) {
-    errEl.textContent = 'Please enter your PIN.';
-    errEl.classList.remove('hidden');
-    return;
-  }
-
-  errEl.classList.add('hidden');
-  btn.disabled    = true;
-  btn.innerHTML   = '<span class="spinner"></span> Signing in…';
 
   try {
-    await apiPost('/api/auth/judge', { judgeId: selectedJudgeId, pin });
+    await apiPost('/api/auth/judge', { judgeId: judge.id });
     window.location.href = '/score';
   } catch (err) {
-    errEl.textContent = err.message;
-    errEl.classList.remove('hidden');
-    document.getElementById('judge-pin').value = '';
-    document.getElementById('judge-pin').focus();
-  } finally {
-    btn.disabled  = false;
-    btn.textContent = 'Sign In';
+    showToast(err.message, 'error');
+    cardEl.classList.remove('selected');
+    for (const c of document.querySelectorAll('.judge-card')) {
+      c.style.pointerEvents = '';
+    }
   }
 }
 

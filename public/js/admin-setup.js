@@ -146,40 +146,15 @@ function createJudgeRow(dayId, judge = null) {
   row.dataset.dayId = dayId;
   if (judge) row.dataset.judgeId = judge.id;
 
-  const pinPlaceholder = judge?.has_pin ? 'Change PIN (leave blank to keep)' : 'Set PIN';
-  const hasPinHint = judge?.has_pin ? '<span class="has-pin-badge text-sm">PIN set ✓</span>' : '';
-
   row.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:4px;">
-      <input
-        type="text"
-        class="input"
-        placeholder="Judge name"
-        value="${judge ? escHtml(judge.name) : ''}"
-        aria-label="Judge name"
-        maxlength="80"
-      >
-      ${hasPinHint}
-    </div>
-    <div class="pin-field-wrap">
-      <input
-        type="password"
-        inputmode="numeric"
-        class="input pin-input-field"
-        placeholder="${escHtml(pinPlaceholder)}"
-        maxlength="10"
-        autocomplete="new-password"
-        aria-label="${escHtml(pinPlaceholder)}"
-        style="font-size:0.9rem;"
-      >
-      <button type="button" class="toggle-pin" title="Show/hide PIN" aria-label="Toggle PIN visibility"
-        onclick="togglePinVisibility(this)">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-      </button>
-    </div>
+    <input
+      type="text"
+      class="input"
+      placeholder="Judge name"
+      value="${judge ? escHtml(judge.name) : ''}"
+      aria-label="Judge name"
+      maxlength="80"
+    >
     <button class="btn btn-ghost btn-icon" type="button" title="Remove judge" aria-label="Remove judge"
       onclick="removeRow(this)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
@@ -201,11 +176,6 @@ function addJudge(dayId) {
 
 function removeRow(btn) {
   btn.closest('.item-row').remove();
-}
-
-function togglePinVisibility(btn) {
-  const input = btn.previousElementSibling;
-  input.type = input.type === 'password' ? 'text' : 'password';
 }
 
 /* ── Save ────────────────────────────────────────────────────────────────── */
@@ -236,11 +206,9 @@ async function saveConfig() {
     // Collect judges
     for (const row of section.querySelectorAll(`#judges-${dayId} .item-row`)) {
       const nameInput = row.querySelector('input[type="text"]');
-      const pinInput  = row.querySelector('.pin-input-field');
       const name = nameInput?.value.trim();
-      const pin  = pinInput?.value.trim();
       const id   = row.dataset.judgeId ? parseInt(row.dataset.judgeId, 10) : undefined;
-      if (name) judges.push({ id, name, pin: pin || undefined });
+      if (name) judges.push({ id, name });
     }
 
     days.push({ dayId, teams, judges });

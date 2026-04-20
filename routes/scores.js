@@ -10,7 +10,7 @@ function requireJudge(req, res, next) {
 }
 
 function calcTotal(impact, analysis, story, feasibility) {
-  return (impact / 10 * 0.30 + analysis / 10 * 0.25 + story / 10 * 0.30 + feasibility / 10 * 0.15) * 100;
+  return (impact / 5 * 0.30 + analysis / 5 * 0.25 + story / 5 * 0.30 + feasibility / 5 * 0.15) * 100;
 }
 
 // GET /api/scores/my-scores
@@ -43,8 +43,8 @@ router.post('/', requireJudge, async (req, res) => {
   });
 
   for (const v of vals) {
-    if (v < 0 || v > 10) {
-      return res.status(400).json({ error: 'Score values must be 0–10' });
+    if (v < 1 || v > 5) {
+      return res.status(400).json({ error: 'Score values must be 1–5' });
     }
   }
 

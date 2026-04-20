@@ -106,6 +106,51 @@
     .notes-section { margin-top: 18px; }
     .notes-section label { display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 6px; }
 
+    /* Rubric reference */
+    .rubric-details { margin: 8px 0 12px; }
+    .rubric-summary {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 0;
+    }
+    .rubric-summary::-webkit-details-marker { display: none; }
+    .rubric-summary::before { content: '▸'; font-size: 0.7rem; }
+    details[open] .rubric-summary::before { content: '▾'; }
+    .rubric-summary:hover { color: var(--text); }
+    .rubric-levels { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .rubric-level {
+      display: flex;
+      gap: 8px;
+      font-size: 0.8rem;
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .rubric-level.rubric-active {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+    .rubric-badge {
+      flex-shrink: 0;
+      font-weight: 600;
+      min-width: 100px;
+    }
+    .rubric-lvl-1 { color: #ef5350; }
+    .rubric-lvl-2 { color: #ffa726; }
+    .rubric-lvl-3 { color: #ffee58; }
+    .rubric-lvl-4 { color: #66bb6a; }
+    .rubric-lvl-5 { color: var(--accent); }
+    .rubric-level-desc { color: var(--text-muted); line-height: 1.45; }
+    .slider-ticks span { text-align: center; line-height: 1.2; }
+    .slider-ticks small { font-size: 0.65rem; color: var(--text-dim); }
+
     /* All scored state */
     .all-scored-banner {
       background: var(--accent-glow);

@@ -1,6 +1,5 @@
 const express = require('express');
 const router  = express.Router();
-const bcrypt  = require('bcrypt');
 const db      = require('../db');
 
 function requireAdmin(req, res, next) {
@@ -16,9 +15,7 @@ router.get('/config', requireAdmin, async (req, res) => {
     const days   = await db.all('SELECT * FROM days ORDER BY id');
     const teams  = await db.all('SELECT * FROM teams ORDER BY day_id, id');
     const judges = await db.all(
-      `SELECT id, name, day_id,
-              CASE WHEN pin_hash IS NOT NULL THEN 1 ELSE 0 END AS has_pin
-       FROM judges ORDER BY day_id, id`
+      'SELECT id, name, day_id FROM judges ORDER BY day_id, id'
     );
     res.json({ days, teams, judges });
   } catch (err) {
@@ -28,7 +25,7 @@ router.get('/config', requireAdmin, async (req, res) => {
 });
 
 // POST /api/admin/setup
-// Body: { days: [ { dayId, teams: [{id?, name}], judges: [{id?, name, pin?}] } ] }
+// Body: { days: [ { dayId, teams: [{id?, name}], judges: [{id?, name}] } ] }
 router.post('/setup', requireAdmin, async (req, res) => {
   const { days } = req.body;
   if (!Array.isArray(days)) {
@@ -36,20 +33,9 @@ router.post('/setup', requireAdmin, async (req, res) => {
   }
 
   try {
-    // Hash PINs asynchronously first
-    const prepared = await Promise.all(days.map(async dayData => {
-      const judges = await Promise.all((dayData.judges || []).map(async j => {
-        if (j.pin && j.pin.trim()) {
-          return { ...j, pin_hash: await bcrypt.hash(j.pin.trim(), 12) };
-        }
-        return j;
-      }));
-      return { ...dayData, judges };
-    }));
-
     // Perform all DB writes in a transaction
     await db.transaction(async () => {
-      for (const { dayId, teams: dayTeams = [], judges: dayJudges = [] } of prepared) {
+      for (const { dayId, teams: dayTeams = [], judges: dayJudges = [] } of days) {
         const day = await db.get('SELECT id FROM days WHERE id = ?', [dayId]);
         if (!day) throw new Error(`Day ${dayId} not found`);
 
@@ -93,16 +79,11 @@ router.post('/setup', requireAdmin, async (req, res) => {
         for (const judge of dayJudges) {
           if (!judge.name?.trim()) continue;
           if (judge.id) {
-            if (judge.pin_hash) {
-              await db.run('UPDATE judges SET name = ?, pin_hash = ? WHERE id = ? AND day_id = ?',
-                [judge.name.trim(), judge.pin_hash, judge.id, dayId]);
-            } else {
-              await db.run('UPDATE judges SET name = ? WHERE id = ? AND day_id = ?',
-                [judge.name.trim(), judge.id, dayId]);
-            }
+            await db.run('UPDATE judges SET name = ? WHERE id = ? AND day_id = ?',
+              [judge.name.trim(), judge.id, dayId]);
           } else {
-            await db.run('INSERT INTO judges (name, day_id, pin_hash) VALUES (?, ?, ?)',
-              [judge.name.trim(), dayId, judge.pin_hash || null]);
+            await db.run('INSERT INTO judges (name, day_id) VALUES (?, ?)',
+              [judge.name.trim(), dayId]);
           }
         }
       }

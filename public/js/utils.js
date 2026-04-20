@@ -74,7 +74,7 @@ function updateSliderFill(slider) {
 function initSlider(slider, displayEl) {
   const update = () => {
     updateSliderFill(slider);
-    if (displayEl) displayEl.textContent = parseFloat(slider.value).toFixed(1);
+    if (displayEl) displayEl.textContent = parseInt(slider.value);
   };
   slider.addEventListener('input', update);
   update(); // initial
@@ -82,5 +82,5 @@ function initSlider(slider, displayEl) {
 
 /* ── Weighted Total ──────────────────────────────────────────────────────── */
 function calcTotal(impact, analysis, story, feasibility) {
-  return (impact / 10 * 0.30 + analysis / 10 * 0.25 + story / 10 * 0.30 + feasibility / 10 * 0.15) * 100;
+  return (impact / 5 * 0.30 + analysis / 5 * 0.25 + story / 5 * 0.30 + feasibility / 5 * 0.15) * 100;
 }

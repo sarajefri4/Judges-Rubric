@@ -121,8 +121,7 @@ async function initSchema() {
   // Seed default days
   const row = await db.get('SELECT COUNT(*) AS cnt FROM days');
   if (row.cnt === 0) {
-    await db.run("INSERT INTO days (name, date) VALUES ('Day 1', 'April 20')");
-    await db.run("INSERT INTO days (name, date) VALUES ('Day 2', 'April 21')");
+    await db.run("INSERT INTO days (name, date) VALUES ('Day 1', 'April 22')");
   }
 }
 

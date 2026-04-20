@@ -70,8 +70,21 @@ let activeTeamId = null;
 
   document.getElementById('logout-btn').addEventListener('click', logout);
 
-  await Promise.all([loadTeams(), loadMyScores()]);
+  try {
+    await Promise.all([loadTeams(), loadMyScores()]);
+  } catch (err) {
+    document.getElementById('loading-state').innerHTML =
+      `<p class="text-danger text-sm">Failed to load: ${escHtml(err.message)}</p>`;
+    return;
+  }
+
   renderTeamTabs();
+
+  if (teams.length === 0) {
+    document.getElementById('loading-state').innerHTML =
+      '<p class="text-muted text-center">No teams configured yet. Contact admin.</p>';
+    return;
+  }
 
   // Activate first unscored team, or first team if all scored
   const firstUnscored = teams.find(t => !scoredMap.has(t.id));

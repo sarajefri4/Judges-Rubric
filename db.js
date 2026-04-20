@@ -118,10 +118,17 @@ async function initSchema() {
     );
   `);
 
-  // Seed default days
-  const row = await db.get('SELECT COUNT(*) AS cnt FROM days');
-  if (row.cnt === 0) {
+  // Migration: ensure exactly one day with correct date
+  const days = await db.all('SELECT id FROM days ORDER BY id');
+  if (days.length === 0) {
     await db.run("INSERT INTO days (name, date) VALUES ('Day 1', 'April 22')");
+  } else {
+    await db.run("UPDATE days SET name = 'Day 1', date = 'April 22' WHERE id = ?", [days[0].id]);
+    if (days.length > 1) {
+      const extraIds = days.slice(1).map(d => d.id);
+      const ph = extraIds.map(() => '?').join(',');
+      await db.run(`DELETE FROM days WHERE id IN (${ph})`, extraIds);
+    }
   }
 }
 

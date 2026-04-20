@@ -115,24 +115,26 @@ async function loadJudges(dayId) {
 
 /* ── Select Judge & Login ─────────────────────────────────────────────────── */
 async function selectJudge(judge, cardEl) {
+  const errEl = document.getElementById('judge-error');
+  errEl.classList.add('hidden');
+
   for (const c of document.querySelectorAll('.judge-card')) {
     c.classList.remove('selected');
     c.setAttribute('aria-pressed', 'false');
+    c.style.pointerEvents = 'none';
   }
   cardEl.classList.add('selected');
   cardEl.setAttribute('aria-pressed', 'true');
-
-  // Disable all cards while logging in
-  for (const c of document.querySelectorAll('.judge-card')) {
-    c.style.pointerEvents = 'none';
-  }
+  cardEl.innerHTML = `<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span><span class="judge-card-name">${escHtml(judge.name)}</span>`;
 
   try {
     await apiPost('/api/auth/judge', { judgeId: judge.id });
     window.location.href = '/score';
   } catch (err) {
-    showToast(err.message, 'error');
-    cardEl.classList.remove('selected');
+    errEl.textContent = `Sign-in failed: ${err.message}. Please try again or contact the admin.`;
+    errEl.classList.remove('hidden');
+    // Restore cards
+    cardEl.innerHTML = `<span class="judge-card-name">${escHtml(judge.name)}</span>`;
     for (const c of document.querySelectorAll('.judge-card')) {
       c.style.pointerEvents = '';
     }

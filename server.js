@@ -60,11 +60,21 @@ app.get('/api/days/:dayId/judges', async (req, res) => {
 // ── HTML page routes ─────────────────────────────────────────────────────────
 const htmlDir = path.join(__dirname, 'public');
 
-app.get('/',              (_, res) => res.sendFile(path.join(htmlDir, 'index.html')));
-app.get('/admin-setup',   (_, res) => res.sendFile(path.join(htmlDir, 'admin-setup.html')));
-app.get('/admin-dashboard', (_, res) => res.sendFile(path.join(htmlDir, 'admin-dashboard.html')));
-app.get('/judge-login',   (_, res) => res.sendFile(path.join(htmlDir, 'judge-login.html')));
-app.get('/score',         (_, res) => res.sendFile(path.join(htmlDir, 'score.html')));
+// Prevent browsers from caching HTML so JS/CSS updates take effect immediately
+function sendHtml(file) {
+  return (_, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.sendFile(path.join(htmlDir, file));
+  };
+}
+
+app.get('/',                sendHtml('index.html'));
+app.get('/admin-setup',     sendHtml('admin-setup.html'));
+app.get('/admin-dashboard', sendHtml('admin-dashboard.html'));
+app.get('/judge-login',     sendHtml('judge-login.html'));
+app.get('/score',           sendHtml('score.html'));
+// Case-insensitive fallback — redirect /Score → /score
+app.get('/Score',           (_, res) => res.redirect(301, '/score'));
 
 // ── Start (wait for DB init) ─────────────────────────────────────────────────
 db._ready.then(() => {

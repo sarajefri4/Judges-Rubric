@@ -2,9 +2,16 @@
 let selectedDayId = null;
 
 (async () => {
+  // Show error toast if the server redirected back after a failed auth
+  const errParam = new URLSearchParams(window.location.search).get('err');
+  if (errParam) {
+    showToast('Sign-in failed. Please select your name again.', 'error');
+    history.replaceState({}, '', '/judge-login');
+  }
+
   const session = await getSession();
   if (session && session.type === 'judge') {
-    window.location.href = '/score';
+    window.location.replace('/score');
     return;
   }
 
@@ -114,10 +121,7 @@ async function loadJudges(dayId) {
 }
 
 /* ── Select Judge & Login ─────────────────────────────────────────────────── */
-async function selectJudge(judge, cardEl) {
-  const errEl = document.getElementById('judge-error');
-  errEl.classList.add('hidden');
-
+function selectJudge(judge, cardEl) {
   for (const c of document.querySelectorAll('.judge-card')) {
     c.classList.remove('selected');
     c.setAttribute('aria-pressed', 'false');
@@ -127,18 +131,10 @@ async function selectJudge(judge, cardEl) {
   cardEl.setAttribute('aria-pressed', 'true');
   cardEl.innerHTML = `<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span><span class="judge-card-name">${escHtml(judge.name)}</span>`;
 
-  try {
-    await apiPost('/api/auth/judge', { judgeId: judge.id });
-    window.location.replace('/score');
-  } catch (err) {
-    errEl.textContent = `Sign-in failed: ${err.message}. Please try again or contact the admin.`;
-    errEl.classList.remove('hidden');
-    // Restore cards
-    cardEl.innerHTML = `<span class="judge-card-name">${escHtml(judge.name)}</span>`;
-    for (const c of document.querySelectorAll('.judge-card')) {
-      c.style.pointerEvents = '';
-    }
-  }
+  // Form POST lets the server set the session cookie and issue the redirect
+  // in a single response — avoids iOS Safari's cookie-timing bug with AJAX
+  document.getElementById('judge-id-field').value = judge.id;
+  document.getElementById('judge-auth-form').submit();
 }
 
 /* ── HTML Escape ─────────────────────────────────────────────────────────── */

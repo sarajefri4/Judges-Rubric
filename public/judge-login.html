@@ -100,6 +100,12 @@
     </div>
   </main>
 
+  <!-- Hidden form: submitted by JS so the server sets the session cookie
+       and issues the redirect in one response (reliable on iOS Safari) -->
+  <form id="judge-auth-form" method="POST" action="/judge-auth" style="display:none;">
+    <input type="hidden" name="judgeId" id="judge-id-field">
+  </form>
+
   <div id="toast-container" role="region" aria-live="polite"></div>
 
   <script src="/js/utils.js"></script>

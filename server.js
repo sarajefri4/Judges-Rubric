@@ -73,6 +73,27 @@ app.get('/admin-setup',     sendHtml('admin-setup.html'));
 app.get('/admin-dashboard', sendHtml('admin-dashboard.html'));
 app.get('/judge-login',     sendHtml('judge-login.html'));
 app.get('/score',           sendHtml('score.html'));
+
+// Form-based judge auth — sets session and redirects in one response
+// (avoids iOS Safari cookie-timing issues with AJAX + client-side redirect)
+app.post('/judge-auth', async (req, res) => {
+  const judgeId = parseInt(req.body.judgeId, 10);
+  if (!judgeId) return res.redirect('/judge-login?err=1');
+  try {
+    const judge = await db.get('SELECT * FROM judges WHERE id = ?', [judgeId]);
+    if (!judge) return res.redirect('/judge-login?err=2');
+    req.session.judgeId   = judge.id;
+    req.session.judgeName = judge.name;
+    req.session.dayId     = judge.day_id;
+    req.session.save(err => {
+      if (err) return res.redirect('/judge-login?err=3');
+      res.redirect('/score');
+    });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/judge-login?err=4');
+  }
+});
 // Case-insensitive fallback — redirect /Score → /score
 app.get('/Score',           (_, res) => res.redirect(301, '/score'));
 

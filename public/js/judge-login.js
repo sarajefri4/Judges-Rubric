@@ -61,8 +61,8 @@ async function loadDays() {
         <div class="day-card-name">${escHtml(day.name)}</div>
         <div class="day-card-date">${escHtml(day.date)}</div>
       `;
-      card.addEventListener('click', () => selectDay(day));
-      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectDay(day); });
+      card.addEventListener('click', () => selectDay(day, card));
+      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectDay(day, card); });
       container.appendChild(card);
     }
   } catch (err) {
@@ -71,13 +71,13 @@ async function loadDays() {
 }
 
 /* ── Select Day ──────────────────────────────────────────────────────────── */
-async function selectDay(day) {
+async function selectDay(day, cardEl) {
   selectedDayId = day.id;
 
   for (const c of document.querySelectorAll('.day-card')) {
     c.classList.remove('selected');
   }
-  event?.currentTarget?.classList.add('selected');
+  cardEl?.classList.add('selected');
 
   document.getElementById('judges-day-label').textContent = `${day.name} — ${day.date}`;
   goToStep('judge');
@@ -129,7 +129,7 @@ async function selectJudge(judge, cardEl) {
 
   try {
     await apiPost('/api/auth/judge', { judgeId: judge.id });
-    window.location.href = '/score';
+    window.location.replace('/score');
   } catch (err) {
     errEl.textContent = `Sign-in failed: ${err.message}. Please try again or contact the admin.`;
     errEl.classList.remove('hidden');

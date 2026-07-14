@@ -24,14 +24,24 @@ function showToast(message, type = 'success') {
 
 /* ── API Helpers ─────────────────────────────────────────────────────────── */
 async function apiFetch(url, options = {}) {
-  const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  return data;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('Request timed out. Check your connection.');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function apiGet(url)         { return apiFetch(url); }
@@ -46,7 +56,7 @@ async function getSession() {
 async function requireAdminSession() {
   const session = await getSession();
   if (!session || session.type !== 'admin') {
-    window.location.href = '/admin-setup';
+    window.location.replace('/admin-setup');
     return null;
   }
   return session;
@@ -55,7 +65,7 @@ async function requireAdminSession() {
 async function requireJudgeSession() {
   const session = await getSession();
   if (!session || session.type !== 'judge') {
-    window.location.href = '/judge-login';
+    window.location.replace('/judge-login');
     return null;
   }
   return session;

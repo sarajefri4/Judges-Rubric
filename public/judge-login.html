@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Judge Login — Datathon 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/main.css">
   <script>try{var _t=localStorage.getItem('theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
   <style>
@@ -93,6 +96,7 @@
         <h2 id="step2-heading" style="font-size:1.6rem;margin-bottom:8px;">Select your name</h2>
         <p class="text-muted mb-24" id="judges-day-label"></p>
         <div class="judge-grid" id="judge-grid" role="list" aria-label="Judges"></div>
+        <p id="judge-error" class="text-danger text-sm hidden" role="alert" style="margin-top:16px;padding:10px 14px;background:rgba(224,84,84,0.1);border:1px solid rgba(224,84,84,0.3);border-radius:8px;"></p>
       </div>
     </div>
   </main>

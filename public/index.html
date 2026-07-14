@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Datathon 2026 — Judging</title>
   <link rel="stylesheet" href="/css/main.css">
+  <script>try{var _t=localStorage.getItem('theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
   <style>
     /* Subtle background pattern */
     body::before {
@@ -46,5 +47,14 @@
   </main>
 
   <div id="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+  <script>
+    (async () => {
+      try {
+        const s = await fetch('/api/settings').then(r => r.json());
+        if (s.eventName) document.querySelector('h1').innerHTML = s.eventName.replace(/ (\S+)$/, ' <span>$1</span>');
+        if (s.theme) { document.documentElement.setAttribute('data-theme', s.theme); try{localStorage.setItem('theme',s.theme);}catch(e){} }
+      } catch(e) {}
+    })();
+  </script>
 </body>
 </html>

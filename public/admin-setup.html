@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Admin Setup — Datathon 2026</title>
   <link rel="stylesheet" href="/css/main.css">
+  <script>try{var _t=localStorage.getItem('theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
   <style>
     .setup-body { padding: 24px 0 60px; }
     .subsection-label {
@@ -90,7 +91,71 @@
     </header>
 
     <div class="container setup-body">
-      <div id="days-container"></div>
+
+      <!-- ── Section 1: General Settings ──────────────────────────────────── -->
+      <section class="setup-section">
+        <div class="setup-section-header">
+          <h2 class="setup-section-title">General Settings</h2>
+        </div>
+
+        <div class="panel">
+          <p class="subsection-label">Event Name</p>
+          <input
+            type="text"
+            id="event-name-input"
+            class="input"
+            placeholder="e.g. DATATHON 2026"
+            maxlength="80"
+            aria-label="Event name"
+          >
+          <p class="input-hint">Displayed on the landing page and judging screen</p>
+        </div>
+
+        <div class="panel">
+          <p class="subsection-label">Color Theme</p>
+          <div class="theme-switcher" id="theme-switcher" role="group" aria-label="Select color theme">
+            <button class="theme-swatch" type="button" data-theme="green" aria-pressed="false">
+              <span class="theme-swatch-dot green"></span> Green
+            </button>
+            <button class="theme-swatch" type="button" data-theme="purple" aria-pressed="false">
+              <span class="theme-swatch-dot purple"></span> Purple
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section 2: Days, Teams & Judges ───────────────────────────────── -->
+      <section class="setup-section">
+        <div class="setup-section-header">
+          <h2 class="setup-section-title">Days, Teams &amp; Judges</h2>
+        </div>
+        <div id="days-container"></div>
+
+        <!-- Add new day -->
+        <div class="panel" style="border-style:dashed;">
+          <p class="subsection-label">Add New Day</p>
+          <div class="add-day-row">
+            <div>
+              <input type="text" id="new-day-name" class="input" placeholder="Day name" maxlength="60" aria-label="New day name">
+            </div>
+            <div>
+              <input type="text" id="new-day-date" class="input" placeholder="Date (e.g. April 20)" maxlength="40" aria-label="New day date">
+            </div>
+            <button class="btn btn-secondary" type="button" id="add-day-btn">+ Add Day</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section 3: Scoring Rubric ─────────────────────────────────────── -->
+      <section class="setup-section">
+        <div class="setup-section-header">
+          <h2 class="setup-section-title">Scoring Rubric</h2>
+          <span class="text-sm text-muted">Weights must sum to 100</span>
+        </div>
+        <div id="rubric-container"></div>
+        <div id="weight-total-display"></div>
+      </section>
+
     </div>
   </div>
 

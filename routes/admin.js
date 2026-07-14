@@ -1,5 +1,6 @@
 const express = require('express');
 const router  = express.Router();
+const bcrypt  = require('bcrypt');
 const db      = require('../db');
 
 function requireAdmin(req, res, next) {
@@ -24,8 +25,90 @@ router.get('/config', requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/settings
+router.get('/settings', requireAdmin, async (req, res) => {
+  try {
+    const { DEFAULT_RUBRIC } = require('../db');
+    const rows = await db.all("SELECT key, value FROM config WHERE key IN ('event_name','theme','rubric')");
+    const map = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    res.json({
+      eventName: map.event_name || 'DATATHON',
+      theme: map.theme || 'green',
+      rubric: map.rubric ? JSON.parse(map.rubric) : DEFAULT_RUBRIC,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/admin/settings  { eventName?, theme?, rubric? }
+router.post('/settings', requireAdmin, async (req, res) => {
+  try {
+    const { eventName, theme, rubric } = req.body;
+    if (eventName !== undefined) {
+      await db.run("INSERT OR REPLACE INTO config (key, value) VALUES ('event_name', ?)", [String(eventName)]);
+    }
+    if (theme !== undefined) {
+      await db.run("INSERT OR REPLACE INTO config (key, value) VALUES ('theme', ?)", [String(theme)]);
+    }
+    if (rubric !== undefined) {
+      await db.run("INSERT OR REPLACE INTO config (key, value) VALUES ('rubric', ?)", [JSON.stringify(rubric)]);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/days  { name, date }
+router.post('/days', requireAdmin, async (req, res) => {
+  try {
+    const { name, date } = req.body;
+    if (!name?.trim() || !date?.trim()) {
+      return res.status(400).json({ error: 'name and date are required' });
+    }
+    const result = await db.run(
+      'INSERT INTO days (name, date) VALUES (?, ?)',
+      [name.trim(), date.trim()]
+    );
+    res.json({ success: true, id: result.lastID });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/admin/days/:id
+router.delete('/days/:id', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const day = await db.get('SELECT id FROM days WHERE id = ?', [id]);
+    if (!day) return res.status(404).json({ error: 'Day not found' });
+
+    await db.transaction(async () => {
+      // Delete scores for all judges/teams in this day (cascade won't cross join)
+      await db.run(`
+        DELETE FROM scores
+        WHERE judge_id IN (SELECT id FROM judges WHERE day_id = ?)
+           OR team_id  IN (SELECT id FROM teams  WHERE day_id = ?)
+      `, [id, id]);
+      // Delete judges and teams (FK cascade will handle scores too, but being explicit)
+      await db.run('DELETE FROM judges WHERE day_id = ?', [id]);
+      await db.run('DELETE FROM teams  WHERE day_id = ?', [id]);
+      await db.run('DELETE FROM days   WHERE id = ?', [id]);
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/admin/setup
-// Body: { days: [ { dayId, teams: [{id?, name}], judges: [{id?, name}] } ] }
+// Body: { days: [ { dayId, name?, date?, teams: [{id?, name}], judges: [{id?, name, pin?}] } ] }
 router.post('/setup', requireAdmin, async (req, res) => {
   const { days } = req.body;
   if (!Array.isArray(days)) {
@@ -35,9 +118,22 @@ router.post('/setup', requireAdmin, async (req, res) => {
   try {
     // Perform all DB writes in a transaction
     await db.transaction(async () => {
-      for (const { dayId, teams: dayTeams = [], judges: dayJudges = [] } of days) {
+      for (const { dayId, name: dayName, date: dayDate, teams: dayTeams = [], judges: dayJudges = [] } of days) {
         const day = await db.get('SELECT id FROM days WHERE id = ?', [dayId]);
         if (!day) throw new Error(`Day ${dayId} not found`);
+
+        // Update day name/date if provided
+        if (dayName !== undefined || dayDate !== undefined) {
+          const current = await db.get('SELECT name, date FROM days WHERE id = ?', [dayId]);
+          await db.run(
+            'UPDATE days SET name = ?, date = ? WHERE id = ?',
+            [
+              dayName !== undefined ? dayName.trim() : current.name,
+              dayDate !== undefined ? dayDate.trim() : current.date,
+              dayId,
+            ]
+          );
+        }
 
         // ── Teams ──────────────────────────────────────────────────────────
         const keepTeamIds = dayTeams.filter(t => t.id).map(t => t.id);
@@ -79,11 +175,31 @@ router.post('/setup', requireAdmin, async (req, res) => {
         for (const judge of dayJudges) {
           if (!judge.name?.trim()) continue;
           if (judge.id) {
-            await db.run('UPDATE judges SET name = ? WHERE id = ? AND day_id = ?',
-              [judge.name.trim(), judge.id, dayId]);
+            // Update name; only update pin_hash if pin provided
+            if (judge.pin && String(judge.pin).trim()) {
+              const pinHash = await bcrypt.hash(String(judge.pin), 10);
+              await db.run(
+                'UPDATE judges SET name = ?, pin_hash = ? WHERE id = ? AND day_id = ?',
+                [judge.name.trim(), pinHash, judge.id, dayId]
+              );
+            } else {
+              await db.run(
+                'UPDATE judges SET name = ? WHERE id = ? AND day_id = ?',
+                [judge.name.trim(), judge.id, dayId]
+              );
+            }
           } else {
-            await db.run('INSERT INTO judges (name, day_id) VALUES (?, ?)',
-              [judge.name.trim(), dayId]);
+            // New judge
+            if (judge.pin && String(judge.pin).trim()) {
+              const pinHash = await bcrypt.hash(String(judge.pin), 10);
+              await db.run(
+                'INSERT INTO judges (name, day_id, pin_hash) VALUES (?, ?, ?)',
+                [judge.name.trim(), dayId, pinHash]
+              );
+            } else {
+              await db.run('INSERT INTO judges (name, day_id) VALUES (?, ?)',
+                [judge.name.trim(), dayId]);
+            }
           }
         }
       }

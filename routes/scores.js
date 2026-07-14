@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../db');
+const { DEFAULT_RUBRIC } = require('../db');
 
 function requireJudge(req, res, next) {
   if (!req.session.judgeId) {
@@ -9,8 +10,10 @@ function requireJudge(req, res, next) {
   next();
 }
 
-function calcTotal(impact, analysis, story, feasibility) {
-  return (impact / 5 * 0.30 + analysis / 5 * 0.25 + story / 5 * 0.30 + feasibility / 5 * 0.15) * 100;
+async function calcTotal(scores) {
+  const row = await db.get("SELECT value FROM config WHERE key = 'rubric'");
+  const criteria = row ? JSON.parse(row.value) : DEFAULT_RUBRIC;
+  return criteria.reduce((sum, c) => sum + (scores[c.key] / 10) * (c.weight / 100), 0) * 100;
 }
 
 // GET /api/scores/my-scores
@@ -43,8 +46,8 @@ router.post('/', requireJudge, async (req, res) => {
   });
 
   for (const v of vals) {
-    if (v < 1 || v > 5) {
-      return res.status(400).json({ error: 'Score values must be 1–5' });
+    if (v < 0 || v > 10) {
+      return res.status(400).json({ error: 'Score values must be 0–10' });
     }
   }
 
@@ -58,7 +61,7 @@ router.post('/', requireJudge, async (req, res) => {
     if (!team) return res.status(404).json({ error: 'Team not found' });
 
     const [impactVal, analysisVal, storyVal, feasibilityVal] = vals;
-    const total = calcTotal(impactVal, analysisVal, storyVal, feasibilityVal);
+    const total = await calcTotal({ impact: impactVal, analysis: analysisVal, story: storyVal, feasibility: feasibilityVal });
 
     await db.run(`
       INSERT INTO scores (judge_id, team_id, impact, analysis, story, feasibility, total, notes, submitted_at)

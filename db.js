@@ -2,6 +2,34 @@
  * SQLite database layer using the `sqlite3` package.
  * Provides a thin promise wrapper so routes can use async/await.
  */
+
+const DEFAULT_RUBRIC = [
+  {
+    key: 'impact', label: 'Business Impact', weight: 30,
+    desc: 'How meaningful, actionable, and relevant is the insight drawn from the data?',
+    subPoints: ['Addresses a real business problem', 'Recommendation is actionable by decision-makers'],
+    ratings: ['No clear business value', 'Minimal business relevance', 'Moderate impact', 'Strong, actionable insight', 'Exceptional, transformative value']
+  },
+  {
+    key: 'analysis', label: 'Quality of Analysis', weight: 25,
+    desc: 'How effectively was the data explored and leveraged using Sigma to derive the insight?',
+    subPoints: ['Depth and rigor of data exploration', 'Effective use of analytical tools'],
+    ratings: ['Very superficial analysis', 'Basic data review', 'Solid analytical approach', 'Thorough and methodical analysis', 'Exceptional analytical depth']
+  },
+  {
+    key: 'story', label: 'Storytelling', weight: 30,
+    desc: 'How clearly and compellingly is the insight communicated?',
+    subPoints: ['Clarity and structure of the narrative', 'Visual design and presentation quality'],
+    ratings: ['Unclear or confusing', 'Basic communication', 'Clear and organized', 'Engaging and well-structured', 'Exceptional, compelling narrative']
+  },
+  {
+    key: 'feasibility', label: 'Feasibility', weight: 15,
+    desc: 'Can this insight realistically be acted upon, and does the team understand its implications?',
+    subPoints: ['Realistic path to implementation', 'Team understands constraints and trade-offs'],
+    ratings: ['Not feasible', 'Limited considerations', 'Generally feasible', 'Well-thought-out path', 'Highly feasible with clear next steps']
+  }
+];
+
 const sqlite3 = require('sqlite3').verbose();
 const path    = require('path');
 const fs      = require('fs');
@@ -80,6 +108,12 @@ async function initSchema() {
       value TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS sessions (
+      sid    TEXT PRIMARY KEY,
+      sess   TEXT NOT NULL,
+      expire INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS days (
       id   INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -118,18 +152,17 @@ async function initSchema() {
     );
   `);
 
-  // Migration: ensure exactly one day with correct date
+  // Seed default days if none exist
   const days = await db.all('SELECT id FROM days ORDER BY id');
   if (days.length === 0) {
-    await db.run("INSERT INTO days (name, date) VALUES ('Day 1', 'April 22')");
-  } else {
-    await db.run("UPDATE days SET name = 'Day 1', date = 'April 22' WHERE id = ?", [days[0].id]);
-    if (days.length > 1) {
-      const extraIds = days.slice(1).map(d => d.id);
-      const ph = extraIds.map(() => '?').join(',');
-      await db.run(`DELETE FROM days WHERE id IN (${ph})`, extraIds);
-    }
+    await db.run("INSERT INTO days (name, date) VALUES ('Day 1', 'April 20')");
+    await db.run("INSERT INTO days (name, date) VALUES ('Day 2', 'April 21')");
   }
+
+  // Seed config defaults
+  await db.run("INSERT OR IGNORE INTO config (key, value) VALUES ('event_name', 'DATATHON')");
+  await db.run("INSERT OR IGNORE INTO config (key, value) VALUES ('theme', 'green')");
+  await db.run("INSERT OR IGNORE INTO config (key, value) VALUES ('rubric', ?)", [JSON.stringify(DEFAULT_RUBRIC)]);
 }
 
 /* Export the db object and the init promise so server.js can await startup. */
@@ -139,3 +172,4 @@ db._ready = initSchema().catch(err => {
 });
 
 module.exports = db;
+module.exports.DEFAULT_RUBRIC = DEFAULT_RUBRIC;

@@ -80,7 +80,9 @@ function initSlider(slider, displayEl) {
   update(); // initial
 }
 
-/* ── Weighted Total ──────────────────────────────────────────────────────── */
-function calcTotal(impact, analysis, story, feasibility) {
-  return (impact / 5 * 0.30 + analysis / 5 * 0.25 + story / 5 * 0.30 + feasibility / 5 * 0.15) * 100;
+/* ── Theme ───────────────────────────────────────────────────────────────── */
+function applyTheme(theme) {
+  const t = theme || 'green';
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem('theme', t); } catch(e) {}
 }
